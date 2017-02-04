@@ -1,0 +1,9 @@
+{
+	"TaskUID" : 123,
+	"TaskName" : "",
+	"TaskDesc": { 
+		"ShortDesc" : "",
+		"LongDesc" : ""
+	},
+	"CommandsAvailable" : ["double_that"]
+}

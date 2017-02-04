@@ -1,0 +1,43 @@
+{
+	"build" : {
+		"compiler" : "g++",
+		"arguments" : "",
+		"include" : {
+			"libraries" : []
+		}
+	},
+	"support" : "", 
+	"methods" : [
+		{
+			"name" : "double_that",
+			"return_type" : "int",
+			"param_type" : "int",
+			"min" : "",
+			"max" : "",
+			"param_name" : "",
+			"code" : "int double_that(int number){return 2*number;}"
+		}, 
+		{
+			"name" : "tenth_that",
+			"return_type" : "double",
+			"param_type" : "double",
+			"min" : "",
+			"max" : "",
+			"param_name" : "",
+			"code" : "double tenth_that(double number){return number*0.1;}"
+		}, 
+		{
+			"name" : "alternate_that",
+			"return_type" : "bool",
+			"param_type" : "bool",
+			"param_name" : "",
+			"code" : "bool alternate_that(bool value){return !value;}"
+		}, 
+		{
+			"name" : "just_do",
+			"return_type" : "void",
+			"param_type" : "void",
+			"code" : "void just_do(){}"
+		}
+	]
+}

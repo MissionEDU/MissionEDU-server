@@ -208,11 +208,12 @@ class server(SwocketHandler):
 		command_list = []
 		for method in self.cdef["methods"]:
 			command = {"CommandName":method["name"], "CommandReturn":method["return_type"], "CommandParams":[]}
-			command["CommandParams"].append({"CommandParamDataType":method["param_type"]})
+			command_params = {"CommandParamDataType":method["param_type"]}
 			if method["param_type"] != "void":
-				command["CommandParamName"] = method["param_name"]
+				command_params["CommandParamName"] = method["param_name"]
 				if "min" in method:
-					command["CommmandParamRanges"] = {"min":method["min"],"max":method["max"]} 
+					command_params["CommmandParamRanges"] = {"min":method["min"],"max":method["max"]} 
+			command["CommandParams"].append(command_params)
 			command_list.append(command)
 		return command_list
 

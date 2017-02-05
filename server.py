@@ -250,7 +250,7 @@ class server(SwocketHandler):
 		except:
 			print "Compiling"
 			ars_gen.build_ars("example.cdef")
-			self.ars_p = subprocess.Popen("./ars.o")
+			self.ars_p = subprocess.Popen(self.cdef["run"]["path"])
 		self.ars.connect()
 
 		server = swockets(swockets.ISSERVER, self)

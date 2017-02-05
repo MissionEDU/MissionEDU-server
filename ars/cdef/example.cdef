@@ -6,6 +6,9 @@
 			"libraries" : []
 		}
 	},
+	"run" : {
+		"path" : "./ars.o"
+	},
 	"support" : "", 
 	"methods" : [
 		{

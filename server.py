@@ -91,7 +91,9 @@ class server(SwocketHandler):
 	"""
 	def recv(self, message, sock):
 		dprint(message)
-		if not self.confMode:
+		if message["MessageType"] == "DSC":
+			disconnect(sock)
+		elif not self.confMode:
 			if self.execution_mode:
 				if message["MessageType"] == "SEC":
 					result = self.exec_cmd(message["Payload"]["CommandName"], message["Payload"]["CommandParams"][0]["CommandParam"])

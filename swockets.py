@@ -147,8 +147,11 @@ class swockets:
 			except socket.error:
 				if self.mode == swockets.ISSERVER:
 					ssock.close()
-					self.handler.disconnect(sock)
-					self.clients.remove(sock)
+					try:
+						self.handler.disconnect(sock)
+						self.clients.remove(sock)
+					except:
+						pass
 					return None
 				else:
 					self.handler.disconnect()
@@ -167,7 +170,7 @@ class swockets:
 
 			if recvdObj == None:
 				return
-			self.handler.recv(recvdObj, ssock)
+			self.handler.recv(recvdObj, sock)
 
 		sock.sock.close()
 

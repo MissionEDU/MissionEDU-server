@@ -194,6 +194,11 @@ class server(SwocketHandler):
 		if command == "shutdown":
 			self.running = False
 			self.ars.send(command)
+		elif command == "mode":
+			if self.confMode:
+				fprint("Conf Mode")
+			else:
+				fprint("Client Mode")
 		else:
 			result = self.exec_cmd_term(command)
 			if result == "failed" or not result:

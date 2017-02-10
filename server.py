@@ -217,7 +217,9 @@ class server(SwocketHandler):
 			if method["param_type"] != "void":
 				command_params["CommandParamName"] = method["param_name"]
 				if "min" in method:
-					command_params["CommmandParamRanges"] = {"min":method["min"],"max":method["max"]} 
+					command_params["CommandParamRanges"] = {"min":method["min"],"max":method["max"]} 
+			if self.confMode:
+				command["CommandCode"] = method["code"]
 			command["CommandParams"].append(command_params)
 			command_list.append(command)
 		return command_list

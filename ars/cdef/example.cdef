@@ -15,8 +15,8 @@
 			"name" : "double_that",
 			"return_type" : "int",
 			"param_type" : "int",
-			"min" : "",
-			"max" : "",
+			"min" : 0,
+			"max" : 65000,
 			"param_name" : "",
 			"code" : "int double_that(int number){return 2*number;}"
 		}, 
@@ -24,8 +24,8 @@
 			"name" : "tenth_that",
 			"return_type" : "double",
 			"param_type" : "double",
-			"min" : "",
-			"max" : "",
+			"min" : -100.0,
+			"max" : 1000.0,
 			"param_name" : "",
 			"code" : "double tenth_that(double number){return number*0.1;}"
 		}, 

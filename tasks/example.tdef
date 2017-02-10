@@ -1,9 +1,9 @@
 {
-	"TaskUID" : 123,
-	"TaskName" : "",
+	"TaskUID" : -1,
+	"TaskName" : "Double the given numbers",
 	"TaskDesc": { 
-		"ShortDesc" : "",
-		"LongDesc" : ""
+		"ShortDesc" : "Double the numbers given with the available commands",
+		"LongDesc" : "Use the command double_that to build a block structure to multiply the numbers 1, 2 and 3 with 2"
 	},
 	"CommandsAvailable" : ["double_that"]
 }

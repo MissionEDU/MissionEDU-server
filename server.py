@@ -9,6 +9,43 @@
 """""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
+logo = "\
+ ````````````````      ```````````````` \n\
+ `````````````````    ````````````````` \n\
+ ``````````````````  `````````````````` \n\
+ `````````````````````````````````````` \n\
+ `````````````````````````````````````` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ ````        ``````````````        ```` \n\
+ `````````````````````````````````````` \n\
+ `````````````````````````````````````` \n\
+                                        \n\
+ +oooooooooooooooooooooooooooooooooooo/ \n\
+``````````--------------------``````````\n\
+````````` ````````    ```````` `````````\n\
+````````` ``````        `````` `````````\n\
+````````` `````          ````` `````````\n\
+````````` ````            ```` `````````\n\
+````````` ```              ``` `````````\n\
+````````` `                  ` `````````\n\
+`````````                      `````````\n\
+`````````                      `````````\n\
+\n\
+\n\
+oy:     /y+  /-                o.                   `y++++:  so++++/`  .y`    -s\n\
+y+h-   :yos  /- `////- `////:  +.  -////-  .+://+:  .d.      h:   `:h. .d`    :h\n\
+y:-h. -y`os  y+ :y:.`` -y:-``  d: :h.  .h: -m-  `d- .m+///.  h:     h+ .d`    :h\n\
+y: :y-y. os  y+  `.:+o  `.:+s` d: +y    y+ -d    h: .d`      h:    :d- `d.    +y\n\
+s:  /h-  +o  s/ -+//++ -+//++  y- `+o//o+` -h    y: .h++++:  yo++++/.   -o+++o+\n\
+"
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""
 Imports
 """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -67,8 +104,18 @@ class server(SwocketHandler):
 		fprint("Server disconnected")
 		if self.confMode:
 			self.confMode = False
-			#restart the ars process here
+			self.start_ars()
 
+	def build_ars(self):
+		ars_gen.build_ars("example.cdef")
+		
+	def start_ars(self):
+		try:
+			self.ars_p = subprocess.Popen("./ars.o")
+		except:
+			print "Compiling"
+			self.build_ars()
+			self.ars_p = subprocess.Popen(self.cdef["run"]["path"])
 	"""
 	sends list of commands and list of tasks
 	"""
@@ -98,18 +145,18 @@ class server(SwocketHandler):
 				if message["MessageType"] == "SEC":
 					result = self.exec_cmd(message["Payload"]["CommandName"], message["Payload"]["CommandParams"][0]["CommandParam"])
 					if result == "failed" or not result:
-						self.sock.send(self.generate_err_message('ECE', 'Command could not be executed'), sock, sock)
+						self.sock.send(self.generate_err_message('ECE', 'Command could not be executed'), sock, sock.sock)
 					else:
-						self.sock.send(pack_message("ECR", result), sock, sock)
+						self.sock.send(pack_message("ECR", result), sock, sock.sock)
 				elif message["MessageType"] == "EEM":
 					self.execution_mode = False
 				else:
-					self.sock.send(self.generate_err_message('CER', 'Cannot use standard commands in execution mode'), sock, sock)
+					self.sock.send(self.generate_err_message('CER', 'Cannot use standard commands in execution mode'), sock, sock.sock)
 
 			elif message["MessageType"] == "SEM":
 				self.execution_mode = True
 			else:
-				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock)
+				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock.sock)
 		else:
 			if message["MessageType"] == "CTS":
 				self.change_task(message["Payload"])
@@ -125,8 +172,8 @@ class server(SwocketHandler):
 			elif message["MessageType"] == "UAL":
 				self.update_ars(message["Payload"])
 			else:
-				print "fake news"
-				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock)
+				print "error executing command"
+				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock.sock)
 
 
 
@@ -150,7 +197,7 @@ class server(SwocketHandler):
 			fprint("Client connected")
 			if req["Payload"]["ClientType"] == "config":
 				#TODO disconnect all other
-				#TODO kill the subprocess, stop the ars
+				self.ars.send("shutdown")
 				self.confMode = True
 				fprint("Config Mode activated")
 			return True
@@ -240,27 +287,37 @@ class server(SwocketHandler):
 	def generate_err_message(self, etype, desc):
 		return pack_message(etype, desc)
 
-
+	"""
+	Update the ars and compile it
+	"""
 	def change_task(self, task):
 		fprint("change task")
+
+	"""
+	Update the ars and compile it
+	"""
 	def add_task(self, task):
 		fprint("adding task")
+
+	"""
+	Update the ars and compile it
+	"""
 	def delete_task(self, task):
 		fprint("deleting task")
+
+	"""
+	Update the ars and compile it
+	"""
 	def update_ars(self, ars):
 		fprint("Updating ars")
+		self.build_ars();
 
 	"""""""""""""""""""""""""""""""""""""""""""""""""""
 	Main program
 	"""""""""""""""""""""""""""""""""""""""""""""""""""
 	def main(self):
 		self.ars = ARS()
-		try:
-			self.ars_p = subprocess.Popen("./ars.o")
-		except:
-			print "Compiling"
-			ars_gen.build_ars("example.cdef")
-			self.ars_p = subprocess.Popen(self.cdef["run"]["path"])
+		self.start_ars()
 		self.ars.connect()
 
 		server = swockets(swockets.ISSERVER, self)
@@ -277,6 +334,7 @@ class server(SwocketHandler):
 			#except
 			#	fprint("error while executing command")
 
-
+print logo
+print "Server Version a0 - (C) 2017 MissionEDU.org - Daniel Swoboda"
 server = server()
 server.main()

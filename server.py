@@ -59,6 +59,7 @@ import ars_gen
 import os
 import glob
 import socket
+import hashlib
 
 """""""""""""""""""""""""""""""""""""""""""""""""""
 Class helper methods
@@ -101,10 +102,12 @@ class server(SwocketHandler):
 
 	def disconnect(self, sock):
 		self.connected = False
-		fprint("Server disconnected")
+		fprint("Client disconnected")
 		if self.confMode:
 			self.confMode = False
 			self.start_ars()
+			self.ars = ARS()
+			self.ars.connect()
 
 	def build_ars(self):
 		ars_gen.build_ars("example.cdef")
@@ -159,14 +162,25 @@ class server(SwocketHandler):
 				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock.sock)
 		else:
 			if message["MessageType"] == "CTS":
-				self.change_task(message["Payload"])
-				#send to all clients new task list
+				if int(message["Payload"]["TaskUID"]) < 0:
+					tse = pack_message("TSE", {"ErrorDescription" : "Pre defined tasks cannot be altered!"})
+					self.sock.send(tse, sock, sock.sock)
+				else:
+					self.change_task(message["Payload"])
+					tsl = pack_message("TSL", self.generate_task_list())
+					self.sock.send(tsl, sock, sock.sock)
 			elif message["MessageType"] == "ATS":
 				self.add_task(message["Payload"])
-				#send to all clients new task list
+				tsl = pack_message("TSL", self.generate_task_list())
+				self.sock.send(tsl, sock, sock.sock)
 			elif message["MessageType"] == "DTS":
-				self.delete_task(message["Payload"])
-				#send to all clients new task list
+				if int(message["Payload"]["TaskUID"]) < 0:
+					tse = pack_message("TSE", {"ErrorDescription" : "Pre defined tasks cannot be delteded!"})
+					self.sock.send(tse, sock, sock.sock)
+				else:
+					self.delete_task(message["Payload"])
+					tsl = pack_message("TSL", self.generate_task_list())
+					self.sock.send(tsl, sock, sock.sock)
 			elif message["MessageType"] == "RAL":
 				self.sock.send(pack_message("SAL", cdef))
 			elif message["MessageType"] == "UAL":
@@ -291,19 +305,24 @@ class server(SwocketHandler):
 	Update the ars and compile it
 	"""
 	def change_task(self, task):
-		fprint("change task")
+		os.remove('tasks/'+task["TaskUID"]+'.tdef')
+		file = open('tasks/'+str(task["TaskUID"])+'.tdef', 'w+')
+		file.write(json.dumps(task))
 
 	"""
 	Update the ars and compile it
 	"""
 	def add_task(self, task):
-		fprint("adding task")
+		task_id = int(hashlib.sha1(str(time.time())+task["TaskName"]+task["TaskDesc"]["ShortDesc"]).hexdigest(), 16)
+		task["TaskUID"] = str(task_id)
+		file = open('tasks/'+str(task_id)+'.tdef', 'w+')
+		file.write(json.dumps(task))
 
 	"""
 	Update the ars and compile it
 	"""
 	def delete_task(self, task):
-		fprint("deleting task")
+		os.remove('tasks/'+task["TaskUID"]+'.tdef')
 
 	"""
 	Update the ars and compile it

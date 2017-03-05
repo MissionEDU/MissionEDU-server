@@ -73,6 +73,10 @@ def build_ars(cdf):
 	bo = cdef["build"] #build option
 	udf_file.close()
 	ars_file.close()
+	os.system("cd ars && rm ars.o")
 	os.system("cd ars && "+bo["compiler"]+" -o ars.o ars.cpp "+bo["arguments"])
+	if not os.path.exists("ars/ars.o"):
+		return False
 	os.system("mv ars/ars.o ars.o")
-	#os.system("rm ars/ars.cpp && rm ars/build/udf.h") DEACTIVATED FOR DEBUGGING 
+	os.system("rm ars/ars.cpp && rm ars/build/udf.h") #DEACTIVATE FOR DEBUGGING 
+	return True

@@ -10,32 +10,32 @@
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
 logo = "\
- ````````````````      ```````````````` \n\
- `````````````````    ````````````````` \n\
- ``````````````````  `````````````````` \n\
- `````````````````````````````````````` \n\
- `````````````````````````````````````` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- ````        ``````````````        ```` \n\
- `````````````````````````````````````` \n\
- `````````````````````````````````````` \n\
-                                        \n\
- +oooooooooooooooooooooooooooooooooooo/ \n\
-``````````--------------------``````````\n\
-````````` ````````    ```````` `````````\n\
-````````` ``````        `````` `````````\n\
-````````` `````          ````` `````````\n\
-````````` ````            ```` `````````\n\
-````````` ```              ``` `````````\n\
-````````` `                  ` `````````\n\
-`````````                      `````````\n\
-`````````                      `````````\n\
+                    ````````````````      ```````````````` \n\
+                    `````````````````    ````````````````` \n\
+                    ``````````````````  `````````````````` \n\
+                    `````````````````````````````````````` \n\
+                    `````````````````````````````````````` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    ````        ``````````````        ```` \n\
+                    `````````````````````````````````````` \n\
+                    `````````````````````````````````````` \n\
+                                                           \n\
+                    +oooooooooooooooooooooooooooooooooooo/ \n\
+                   ``````````--------------------``````````\n\
+                   ````````` ````````    ```````` `````````\n\
+                   ````````` ``````        `````` `````````\n\
+                   ````````` `````          ````` `````````\n\
+                   ````````` ````            ```` `````````\n\
+                   ````````` ```              ``` `````````\n\
+                   ````````` `                  ` `````````\n\
+                   `````````                      `````````\n\
+                   `````````                      `````````\n\
 \n\
 \n\
 oy:     /y+  /-                o.                   `y++++:  so++++/`  .y`    -s\n\
@@ -60,6 +60,7 @@ import os
 import glob
 import socket
 import hashlib
+import copy
 
 """""""""""""""""""""""""""""""""""""""""""""""""""
 Class helper methods
@@ -140,7 +141,7 @@ class server(SwocketHandler):
 	called whenever a message is received
 	"""
 	def recv(self, message, sock):
-		dprint(message)
+		#dprint(message)
 		if message["MessageType"] == "DSC":
 			disconnect(sock)
 		elif not self.confMode:
@@ -181,12 +182,33 @@ class server(SwocketHandler):
 					self.delete_task(message["Payload"])
 					tsl = pack_message("TSL", self.generate_task_list())
 					self.sock.send(tsl, sock, sock.sock)
+			elif message["MessageType"] == "ACM":
+				if self.add_command(message["Payload"]):
+					cml = pack_message("CML", self.generate_command_list())
+					self.sock.send(cml, sock, sock.sock)
+				else: 
+					CER = pack_message("CER", {"ErrorDescription" : "Command did not compile! Removed command"})
+					self.sock.send(CER, sock, sock.sock)
+			elif message["MessageType"] == "CCM":
+				if self.change_command(message["Payload"]):
+					cml = pack_message("CML", self.generate_command_list())
+					self.sock.send(cml, sock, sock.sock)
+				else: 
+					CER = pack_message("CER", {"ErrorDescription" : "Command did not compile! Reverted state!"})
+					self.sock.send(CER, sock, sock.sock)
+			elif message["MessageType"] == "DCM":
+				if self.delete_command(message["Payload"]):
+					cml = pack_message("CML", self.generate_command_list())
+					self.sock.send(cml, sock, sock.sock)
+				else: 
+					CER = pack_message("CER", {"ErrorDescription" : "Deletion unsuccessful!"})
+					self.sock.send(CER, sock, sock.sock)
 			elif message["MessageType"] == "RAL":
 				self.sock.send(pack_message("SAL", cdef))
 			elif message["MessageType"] == "UAL":
 				self.update_ars(message["Payload"])
 			else:
-				print "error executing command"
+				fprint("error executing command")
 				self.sock.send(self.generate_err_message('CER', 'Invalid command'), sock, sock.sock)
 
 
@@ -302,7 +324,7 @@ class server(SwocketHandler):
 		return pack_message(etype, desc)
 
 	"""
-	Update the ars and compile it
+	Change the task file for the given task
 	"""
 	def change_task(self, task):
 		os.remove('tasks/'+task["TaskUID"]+'.tdef')
@@ -310,7 +332,7 @@ class server(SwocketHandler):
 		file.write(json.dumps(task))
 
 	"""
-	Update the ars and compile it
+	Add a task and a task file
 	"""
 	def add_task(self, task):
 		task_id = int(hashlib.sha1(str(time.time())+task["TaskName"]+task["TaskDesc"]["ShortDesc"]).hexdigest(), 16)
@@ -319,10 +341,128 @@ class server(SwocketHandler):
 		file.write(json.dumps(task))
 
 	"""
-	Update the ars and compile it
+	Delete a task file
 	"""
 	def delete_task(self, task):
 		os.remove('tasks/'+task["TaskUID"]+'.tdef')
+
+	"""
+	Change a given command
+	"""
+	def change_command(self, command):
+		fprint("Change Command")
+		old_cdef = copy.deepcopy(self.cdef)
+
+		index = -1
+		counter = 0
+		for method in self.cdef["methods"]:
+			if method["name"] == command["CommandName"]:
+				index = counter
+			counter+=1
+
+		if index >= 0:
+			self.cdef["methods"][0]["name"] = command["CommandName"]
+			self.cdef["methods"][0]["return_type"] = command["CommandReturn"]
+			self.cdef["methods"][0]["param_type"] = command["CommandParams"][0]["CommandParamDataType"]
+			self.cdef["methods"][0]["code"] = command["Code"]
+
+			if command["CommandParams"][0]["CommandParamDataType"] != "void":
+				self.cdef["methods"][0]["param_name"] = command["CommandParams"][0]["CommandParamName"]
+				if command["CommandParams"][0]["CommandParamDataType"] == "double" or \
+					command["CommandParams"][0]["CommandParamDataType"] == "int":
+					
+					self.cdef["methods"][0]["min"] = command["CommandParams"][0]["CommandParamRanges"]["min"]
+					self.cdef["methods"][0]["max"] = command["CommandParams"][0]["CommandParamRanges"]["max"]
+
+			f = open('ars/cdef/'+'example.cdef', 'w')
+			f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+			f.close()
+
+			if not ars_gen.build_ars("example.cdef"):
+				fprint("Error Updating ARS")
+				self.cdef = old_cdef
+				f = open('ars/cdef/'+'example.cdef', 'w')
+				f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+				f.close() 
+				ars_gen.build_ars("example.cdef")
+				fprint("Reverted ARS")
+				return False
+			else:
+				fprint("Updated ARS")
+				return True
+		else:
+			return False
+
+	"""
+	Add a command
+	"""
+	def add_command(self, command):
+		fprint("Add Command")
+		old_cdef = copy.deepcopy(self.cdef)
+
+		method = {
+			"name" : command["CommandName"],
+			"return_type" :  command["CommandReturn"],
+			"param_type" : command["CommandParams"][0]["CommandParamDataType"],
+			"code" : command["Code"]
+		}
+
+		if command["CommandParams"][0]["CommandParamDataType"] != "void":
+			method["param_name"] = command["CommandParams"][0]["CommandParamName"]
+			if command["CommandParams"][0]["CommandParamDataType"] == "double" or \
+				command["CommandParams"][0]["CommandParamDataType"] == "int":
+				
+				method["min"] = command["CommandParams"][0]["CommandParamRanges"]["min"]
+				method["max"] = command["CommandParams"][0]["CommandParamRanges"]["max"]
+		self.cdef["methods"].append(method)
+		f = open('ars/cdef/'+'example.cdef', 'w')
+		f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+		f.close()
+		if not ars_gen.build_ars("example.cdef"):
+			fprint("Error Updating ARS")
+			self.cdef = old_cdef
+			f = open('ars/cdef/'+'example.cdef', 'w')
+			f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+			f.close() 
+			ars_gen.build_ars("example.cdef")
+			fprint("Reverted ARS")
+			return False
+		else:
+			fprint("Updated ARS")
+			return True
+
+	"""
+	Delete a command
+	"""
+	def delete_command(self, command):
+		fprint("Delete Command")
+		old_cdef = copy.deepcopy(self.cdef)
+		index = -1
+		counter = 0
+		for method in self.cdef["methods"]:
+			if method["name"] == command["CommandName"]:
+				index = counter
+			counter+=1
+
+		if index >= 0:
+			self.cdef["methods"].pop(index)
+
+		f = open('ars/cdef/'+'example.cdef', 'w')
+		f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+		f.close()
+
+		if not ars_gen.build_ars("example.cdef"):
+			fprint("Error Updating ARS")
+			self.cdef = old_cdef
+			f = open('ars/cdef/'+'example.cdef', 'w')
+			f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+			f.close() 
+			ars_gen.build_ars("example.cdef")
+			fprint("Reverted ARS")
+			return False
+		else:
+			fprint("Updated ARS")
+			return True
 
 	"""
 	Update the ars and compile it
@@ -354,6 +494,6 @@ class server(SwocketHandler):
 			#	fprint("error while executing command")
 
 print logo
-print "Server Version a0 - (C) 2017 MissionEDU.org - Daniel Swoboda"
+print "Server Version 1.0 - (C) 2017 MissionEDU.org - Daniel Swoboda"
 server = server()
 server.main()

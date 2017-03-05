@@ -1,5 +1,5 @@
 {
-	"TaskUID" : -1,
+	"TaskUID" : "-1",
 	"TaskName" : "Double the given numbers",
 	"TaskDesc": { 
 		"ShortDesc" : "Double the numbers given with the available commands",

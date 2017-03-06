@@ -335,7 +335,10 @@ class server(SwocketHandler):
 	Add a task and a task file
 	"""
 	def add_task(self, task):
-		task_id = int(hashlib.sha1(str(time.time())+task["TaskName"]+task["TaskDesc"]["ShortDesc"]).hexdigest(), 16)
+		try:
+			task_id = int(hashlib.sha1(str(time.time())+task["TaskName"]+task["TaskDesc"]["ShortDesc"]).hexdigest(), 16)
+		except UnicodeEncodeError:
+			task_id = int(hashlib.sha1(str(time.time())).hexdigest(), 16)
 		task["TaskUID"] = str(task_id)
 		file = open('tasks/'+str(task_id)+'.tdef', 'w+')
 		file.write(json.dumps(task))
@@ -418,7 +421,20 @@ class server(SwocketHandler):
 		f = open('ars/cdef/'+'example.cdef', 'w')
 		f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
 		f.close()
-		if not ars_gen.build_ars("example.cdef"):
+		try:
+			if not ars_gen.build_ars("example.cdef"):
+				fprint("Error Updating ARS")
+				self.cdef = old_cdef
+				f = open('ars/cdef/'+'example.cdef', 'w')
+				f.write(json.dumps(self.cdef, indent=4, sort_keys=True))
+				f.close() 
+				ars_gen.build_ars("example.cdef")
+				fprint("Reverted ARS")
+				return False
+			else:
+				fprint("Updated ARS")
+				return True
+		except UnicodeEncodeError:
 			fprint("Error Updating ARS")
 			self.cdef = old_cdef
 			f = open('ars/cdef/'+'example.cdef', 'w')
@@ -427,9 +443,6 @@ class server(SwocketHandler):
 			ars_gen.build_ars("example.cdef")
 			fprint("Reverted ARS")
 			return False
-		else:
-			fprint("Updated ARS")
-			return True
 
 	"""
 	Delete a command

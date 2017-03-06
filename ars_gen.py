@@ -67,8 +67,11 @@ def build_ars(cdf):
 	template = template.replace("<USER_FUNCTION_SETUP>", function_setup)
 	template = template.replace("<USER_INCLUDES>", user_includes)
 
-	udf_file.write(udf);
-	ars_file.write(template)
+	try:
+		udf_file.write(udf)
+		ars_file.write(template)
+	except UnicodeEncodeError:
+		return False
 
 	bo = cdef["build"] #build option
 	udf_file.close()

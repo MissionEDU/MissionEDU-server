@@ -124,45 +124,48 @@ class swockets:
 
 	#receives one json formatted message between two swockets
 	def receive_one_message(self, sock, ssock):
-		recvdStr = ""
-		recvdMsg = ""
+		try:
+			recvdStr = ""
+			recvdMsg = ""
 
-		while True:
-			try:
-				recvdStr = ssock.recv(1024)
+			while True:
+				try:
+					recvdStr = ssock.recv(1024)
 
-				if recvdStr == "":
+					if recvdStr == "":
+						if self.mode == swockets.ISSERVER:
+							self.handler.disconnect(sock)
+							ssock.close()
+							self.clients.remove(sock)
+							return None
+						else: 
+							self.handler.disconnect()
+							self.sock.close()
+							return None
+					else:
+						recvdMsg+=recvdStr
+
+					recvdObj = json.loads(recvdMsg)
+					recvdMsg = ""
+
+					return recvdObj
+				except ValueError:
+					pass
+				except socket.error:
 					if self.mode == swockets.ISSERVER:
-						self.handler.disconnect(sock)
 						ssock.close()
-						self.clients.remove(sock)
+						try:
+							self.handler.disconnect(sock)
+							self.clients.remove(sock)
+						except:
+							pass
 						return None
-					else: 
+					else:
 						self.handler.disconnect()
 						self.sock.close()
 						return None
-				else:
-					recvdMsg+=recvdStr
-
-				recvdObj = json.loads(recvdMsg)
-				recvdMsg = ""
-
-				return recvdObj
-			except ValueError:
-				pass
-			except socket.error:
-				if self.mode == swockets.ISSERVER:
-					ssock.close()
-					try:
-						self.handler.disconnect(sock)
-						self.clients.remove(sock)
-					except:
-						pass
-					return None
-				else:
-					self.handler.disconnect()
-					self.sock.close()
-					return None
+		except UnicodeEncodeError:
+			return None
 
 	#thread that runs in background waiting for messages and forwarding
 	#them to the handler for further processing by user
